@@ -1,0 +1,1 @@
+{"name":"fixture-node-package","scripts":{"test":"node --test","check":"node --check src/*.js","build":"node --check src/*.js","smoke":"node src/index.js"}}
