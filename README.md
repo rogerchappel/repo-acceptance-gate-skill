@@ -20,3 +20,20 @@ The CLI does not publish packages, create tags, modify branch protection, call L
 ## Limitations
 
 The V1 detector is strongest for Node-style agent-skill repos. Non-Node repositories still get docs and fixture checks but fewer command hints.
+
+## Verification
+
+```sh
+npm test
+npm run check --if-present
+npm run smoke --if-present
+```
+
+## Usage
+
+Start from the checked-out package scripts so examples stay aligned with the current version:
+
+```sh
+npm install
+npm run smoke
+```
