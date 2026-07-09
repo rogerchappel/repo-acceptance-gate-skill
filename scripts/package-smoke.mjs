@@ -11,6 +11,7 @@ for (const expected of [
   "SKILL.md",
   "src/cli.js",
   "src/evaluate.js",
+  "scripts/package-smoke.mjs",
   "fixtures/node-package/package.json",
   "docs/PRD.md",
 ]) {
