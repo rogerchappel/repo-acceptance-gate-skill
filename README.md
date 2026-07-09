@@ -6,12 +6,15 @@ A deterministic local CLI that turns repository evidence into a release-candidat
 
 ```bash
 npm install
+npm run release:check
 npm run smoke
 node src/cli.js check . --format markdown
 node src/cli.js check . --format json
 node src/cli.js init-policy --out gate.policy.json
 node src/cli.js check . --policy gate.policy.json --fail-on block
 ```
+
+`npm run release:check` runs syntax checks, tests, the fixture smoke, and the package dry-run smoke used by CI.
 
 ## Safety Notes
 
