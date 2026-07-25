@@ -6,6 +6,15 @@ import { scanRepo } from "../src/scan.js";
 import { evaluate } from "../src/evaluate.js";
 import { renderMarkdown } from "../src/render.js";
 
+const repoRoot = new URL("..", import.meta.url);
+
+function runCli(...args) {
+  return spawnSync(process.execPath, ["src/cli.js", ...args], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+}
+
 test("ships a complete node package fixture", async () => {
   const report = evaluate(await scanRepo("fixtures/node-package"));
   assert.equal(report.recommendation, "ship");
@@ -75,4 +84,52 @@ test("CLI init-policy writes a reusable local policy file", () => {
   const policy = JSON.parse(readFileSync(out, "utf8"));
   assert.equal(policy.blockOnMissingRequiredScripts, false);
   rmSync(out, { force: true });
+});
+
+test("CLI accepts check options before the repository root", () => {
+  const result = runCli("check", "--format", "json", "fixtures/node-package");
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, "");
+  assert.equal(JSON.parse(result.stdout).recommendation, "ship");
+});
+
+test("CLI rejects unsupported format values", () => {
+  const result = runCli("check", "fixtures/node-package", "--format", "yaml");
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /Unsupported value for --format: yaml/);
+});
+
+test("CLI rejects missing option values with CLI diagnostics", () => {
+  for (const [command, ...args] of [
+    ["check", "fixtures/node-package", "--policy"],
+    ["check", "fixtures/node-package", "--format"],
+    ["check", "fixtures/node-package", "--fail-on"],
+    ["init-policy", "--out"],
+  ]) {
+    const result = runCli(command, ...args);
+    const option = args.at(-1);
+    assert.equal(result.status, 1, `${command} ${args.join(" ")}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, new RegExp(`Missing value for ${option}`));
+    assert.doesNotMatch(result.stderr, /TypeError|node:internal/);
+  }
+});
+
+test("CLI rejects unknown options", () => {
+  const result = runCli("check", "fixtures/node-package", "--unknown", "value");
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /Unknown option for check: --unknown/);
+});
+
+test("CLI rejects extra positional arguments", () => {
+  const result = runCli("explain", "fixtures/node-package", "fixtures/sparse");
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /Unexpected argument for explain: fixtures\/sparse/);
 });

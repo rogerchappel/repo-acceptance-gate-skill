@@ -9,7 +9,7 @@ const [command, ...args] = process.argv.slice(2);
 
 try {
   if (!command || command === "--help") help();
-  else if (command === "check" || command === "explain") await check(args);
+  else if (command === "check" || command === "explain") await check(args, command);
   else if (command === "init-policy") await initPolicy(args);
   else throw new Error(`Unknown command: ${command}`);
 } catch (error) {
@@ -17,9 +17,19 @@ try {
   process.exitCode = 1;
 }
 
-async function check(args) {
-  const root = args[0] || ".";
-  const options = parseOptions(args.slice(1));
+async function check(args, command) {
+  const { positional, options } = parseArgs(args, {
+    command,
+    options: ["policy", "format", "fail-on"],
+    maxPositionals: 1,
+  });
+  const root = positional[0] || ".";
+  if (options.format && !["markdown", "json"].includes(options.format)) {
+    throw new Error(`Unsupported value for --format: ${options.format} (expected markdown or json)`);
+  }
+  if (options["fail-on"] && !["ship", "incubate", "block"].includes(options["fail-on"])) {
+    throw new Error(`Unsupported value for --fail-on: ${options["fail-on"]} (expected ship, incubate, or block)`);
+  }
   const policy = options.policy ? JSON.parse(await readFile(options.policy, "utf8")) : {};
   const report = evaluate(await scanRepo(root), policy);
   process.stdout.write(renderReport(report, options.format || "markdown"));
@@ -27,21 +37,43 @@ async function check(args) {
 }
 
 async function initPolicy(args) {
-  const options = parseOptions(args);
+  const { options } = parseArgs(args, {
+    command: "init-policy",
+    options: ["out"],
+    maxPositionals: 0,
+  });
   if (options.out) await writeFile(options.out, initialPolicyJson());
   else process.stdout.write(initialPolicyJson());
 }
 
-function parseOptions(args) {
+function parseArgs(args, { command, options: supportedOptions, maxPositionals }) {
   const options = {};
+  const positional = [];
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (!arg.startsWith("--")) continue;
+    if (!arg.startsWith("--")) {
+      if (positional.length === maxPositionals) {
+        throw new Error(`Unexpected argument for ${command}: ${arg}`);
+      }
+      positional.push(arg);
+      continue;
+    }
+
     const key = arg.slice(2);
+    if (!supportedOptions.includes(key)) {
+      throw new Error(`Unknown option for ${command}: ${arg}`);
+    }
+    if (Object.hasOwn(options, key)) {
+      throw new Error(`Duplicate option for ${command}: ${arg}`);
+    }
+
     const next = args[index + 1];
-    options[key] = next && !next.startsWith("--") ? args[++index] : true;
+    if (!next || next.startsWith("--")) {
+      throw new Error(`Missing value for ${arg}`);
+    }
+    options[key] = args[++index];
   }
-  return options;
+  return { positional, options };
 }
 
 function help() {
