@@ -14,6 +14,16 @@ node src/cli.js init-policy --out gate.policy.json
 node src/cli.js check . --policy gate.policy.json --fail-on block
 ```
 
+`check` and `explain` accept one optional repository root (default: `.`). Their
+`--policy`, `--format`, and `--fail-on` options may appear before or after that
+root. `--format` accepts `markdown` or `json`; `--fail-on` accepts `ship`,
+`incubate`, or `block`. `init-policy` accepts `--out <path>`.
+
+Unknown options, extra positional arguments, unsupported values, and options
+without values print a concise diagnostic to stderr and exit with status 1.
+A successful gate exits with status 0; a recommendation matched by `--fail-on`
+exits with the gate-specific status 2.
+
 `npm run release:check` runs syntax checks, tests, the fixture smoke, and the package dry-run smoke used by CI.
 
 ## Safety Notes
