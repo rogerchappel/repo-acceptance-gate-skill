@@ -31,6 +31,32 @@ test("supports stricter script policy", async () => {
   assert.equal(report.recommendation, "block");
 });
 
+test("API scans custom required, recommended, and fixture paths", async () => {
+  const policy = {
+    requiredDocs: ["CUSTOM_REQUIRED.md"],
+    recommendedDocs: ["guides/CUSTOM_RECOMMENDED.md"],
+    fixtureDirs: ["custom-fixtures"],
+  };
+  const report = evaluate(await scanRepo("fixtures/custom-policy", policy), policy);
+
+  assert.deepEqual(report.summary.missingRequiredDocs, []);
+  assert.deepEqual(report.summary.missingRecommendedDocs, []);
+  assert.equal(report.checks.find(({ id }) => id === "fixtures").pass, true);
+});
+
+test("API reports missing custom policy paths", async () => {
+  const policy = {
+    requiredDocs: ["MISSING_REQUIRED.md"],
+    recommendedDocs: ["guides/MISSING_RECOMMENDED.md"],
+    fixtureDirs: ["missing-fixtures"],
+  };
+  const report = evaluate(await scanRepo("fixtures/custom-policy", policy), policy);
+
+  assert.deepEqual(report.summary.missingRequiredDocs, ["MISSING_REQUIRED.md"]);
+  assert.deepEqual(report.summary.missingRecommendedDocs, ["guides/MISSING_RECOMMENDED.md"]);
+  assert.equal(report.checks.find(({ id }) => id === "fixtures").pass, false);
+});
+
 test("renders markdown acceptance packet", async () => {
   const report = evaluate(await scanRepo("fixtures/node-package"));
   assert.match(renderMarkdown(report), /Repository Acceptance Gate/);
@@ -59,6 +85,37 @@ test("CLI emits JSON acceptance evidence for the complete fixture", () => {
   const report = JSON.parse(result.stdout);
   assert.equal(report.recommendation, "ship");
   assert.deepEqual(report.summary.missingScripts, []);
+});
+
+test("CLI scans custom paths from a policy file", () => {
+  const result = runCli("check", "fixtures/custom-policy", "--policy", "fixtures/custom-policy/policy.json", "--format", "json");
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, "");
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(report.summary.missingRequiredDocs, []);
+  assert.deepEqual(report.summary.missingRecommendedDocs, []);
+  assert.equal(report.checks.find(({ id }) => id === "fixtures").pass, true);
+});
+
+test("CLI reports missing custom paths from a policy file", () => {
+  const result = runCli("explain", "fixtures/custom-policy", "--policy", "fixtures/custom-policy/missing-policy.json", "--format", "json");
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, "");
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(report.summary.missingRequiredDocs, ["MISSING_REQUIRED.md"]);
+  assert.deepEqual(report.summary.missingRecommendedDocs, ["guides/MISSING_RECOMMENDED.md"]);
+  assert.equal(report.checks.find(({ id }) => id === "fixtures").pass, false);
+});
+
+test("CLI rejects malformed policy list types with concise diagnostics", () => {
+  const result = runCli("check", "fixtures/custom-policy", "--policy", "fixtures/custom-policy/malformed-policy.json");
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /Policy requiredDocs must be an array of strings/);
+  assert.doesNotMatch(result.stderr, /TypeError|node:internal/);
 });
 
 test("CLI fail-on option returns a gate-specific exit code", () => {

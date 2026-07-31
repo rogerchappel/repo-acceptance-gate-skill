@@ -1,17 +1,25 @@
 import { access, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { mergePolicy } from "./policy.js";
 
-export async function scanRepo(root) {
+const defaultDetectedDocs = ["README.md", "SKILL.md", "LICENSE", "SECURITY.md", "CHANGELOG.md", "docs/PRD.md", "docs/TASKS.md", "docs/ORCHESTRATION.md", "docs/RELEASE_CANDIDATE.md", "docs/PR_EVIDENCE.md"];
+
+export async function scanRepo(root, policyInput = {}) {
   const absolute = path.resolve(root);
+  const policy = mergePolicy(policyInput);
   const packageJson = await readJson(path.join(absolute, "package.json"));
   return {
     root: absolute,
     package: packageJson,
     scripts: packageJson?.scripts || {},
-    docs: await detectFiles(absolute, ["README.md", "SKILL.md", "LICENSE", "SECURITY.md", "CHANGELOG.md", "docs/PRD.md", "docs/TASKS.md", "docs/ORCHESTRATION.md", "docs/RELEASE_CANDIDATE.md", "docs/PR_EVIDENCE.md"]),
-    fixtureDirs: await detectDirs(absolute, ["fixtures", "test", "tests"]),
+    docs: await detectFiles(absolute, unique([...defaultDetectedDocs, ...policy.requiredDocs, ...policy.recommendedDocs])),
+    fixtureDirs: await detectDirs(absolute, unique(policy.fixtureDirs)),
     validationScripts: await listScripts(path.join(absolute, "scripts"))
   };
+}
+
+function unique(values) {
+  return [...new Set(values)];
 }
 
 async function readJson(file) {

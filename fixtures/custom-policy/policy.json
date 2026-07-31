@@ -1,0 +1,6 @@
+{
+  "requiredDocs": ["CUSTOM_REQUIRED.md"],
+  "recommendedDocs": ["guides/CUSTOM_RECOMMENDED.md"],
+  "requiredScripts": [],
+  "fixtureDirs": ["custom-fixtures"]
+}

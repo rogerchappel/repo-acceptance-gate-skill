@@ -7,6 +7,11 @@ Use this skill when an agent needs a deterministic release-candidate packet for 
 - A local repository path.
 - Optional `gate.policy.json` created by `init-policy`.
 
+Policy `requiredDocs` and `recommendedDocs` arrays may contain custom
+repository-relative file paths. `fixtureDirs` may likewise contain custom
+repository-relative directory paths. `check` and `explain` scan every path in
+the merged active policy.
+
 ## Boundaries
 
 - No publishing, tagging, package release, or branch-protection changes.
