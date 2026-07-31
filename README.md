@@ -24,6 +24,20 @@ without values print a concise diagnostic to stderr and exit with status 1.
 A successful gate exits with status 0; a recommendation matched by `--fail-on`
 exits with the gate-specific status 2.
 
+Policy lists may name repository-relative custom paths. `requiredDocs` and
+`recommendedDocs` accept file paths such as `architecture/DECISIONS.md`, while
+`fixtureDirs` accepts directory paths such as `examples/integration`. Both
+`check` and `explain` scan every path in the merged active policy; list values
+must be arrays of strings.
+
+```json
+{
+  "requiredDocs": ["README.md", "architecture/DECISIONS.md"],
+  "recommendedDocs": ["guides/OPERATIONS.md"],
+  "fixtureDirs": ["examples/integration"]
+}
+```
+
 `npm run release:check` runs syntax checks, tests, the fixture smoke, and the package dry-run smoke used by CI.
 
 ## Safety Notes
