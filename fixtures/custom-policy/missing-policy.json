@@ -1,0 +1,6 @@
+{
+  "requiredDocs": ["MISSING_REQUIRED.md"],
+  "recommendedDocs": ["guides/MISSING_RECOMMENDED.md"],
+  "requiredScripts": [],
+  "fixtureDirs": ["missing-fixtures"]
+}
