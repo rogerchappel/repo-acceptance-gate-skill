@@ -8,7 +8,13 @@ export const defaultPolicy = {
 };
 
 export function mergePolicy(policy = {}) {
-  return { ...defaultPolicy, ...policy };
+  const merged = { ...defaultPolicy, ...policy };
+  for (const field of ["requiredDocs", "recommendedDocs", "requiredScripts", "fixtureDirs"]) {
+    if (!Array.isArray(merged[field]) || merged[field].some((value) => typeof value !== "string")) {
+      throw new Error(`Policy ${field} must be an array of strings`);
+    }
+  }
+  return merged;
 }
 
 export function initialPolicyJson() {

@@ -31,7 +31,7 @@ async function check(args, command) {
     throw new Error(`Unsupported value for --fail-on: ${options["fail-on"]} (expected ship, incubate, or block)`);
   }
   const policy = options.policy ? JSON.parse(await readFile(options.policy, "utf8")) : {};
-  const report = evaluate(await scanRepo(root), policy);
+  const report = evaluate(await scanRepo(root, policy), policy);
   process.stdout.write(renderReport(report, options.format || "markdown"));
   if (options["fail-on"] && report.recommendation === options["fail-on"]) process.exitCode = 2;
 }
