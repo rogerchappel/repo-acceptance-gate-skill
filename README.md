@@ -5,7 +5,7 @@ A deterministic local CLI that turns repository evidence into a release-candidat
 ## Quickstart
 
 ```bash
-npm install
+npm ci
 npm run release:check
 npm run smoke
 node src/cli.js check . --format markdown
@@ -38,7 +38,7 @@ must be arrays of strings.
 }
 ```
 
-`npm run release:check` runs syntax checks, tests, the fixture smoke, and the package dry-run smoke used by CI.
+`npm run release:check` runs syntax checks, tests, the fixture smoke, and a package smoke that packs the release artifact, installs it in a disposable consumer, and exercises the installed CLI.
 
 ## Safety Notes
 
@@ -61,6 +61,6 @@ npm run smoke --if-present
 Start from the checked-out package scripts so examples stay aligned with the current version:
 
 ```sh
-npm install
+npm ci
 npm run smoke
 ```
