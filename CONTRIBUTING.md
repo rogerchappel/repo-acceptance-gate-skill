@@ -5,7 +5,7 @@ Thanks for helping improve repo-acceptance-gate-skill.
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run release:check
 ```
 
