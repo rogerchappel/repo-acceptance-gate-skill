@@ -1,4 +1,4 @@
-import { access, readFile, readdir, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { mergePolicy } from "./policy.js";
 
@@ -23,12 +23,24 @@ function unique(values) {
 }
 
 async function readJson(file) {
-  try { return JSON.parse(await readFile(file, "utf8")); } catch { return null; }
+  let contents;
+  try {
+    contents = await readFile(file, "utf8");
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw new Error(`Cannot read package.json: ${error.message}`);
+  }
+
+  try {
+    return JSON.parse(contents);
+  } catch (error) {
+    throw new Error(`Cannot parse package.json: ${error.message}`);
+  }
 }
 
 async function detectFiles(root, files) {
   const result = {};
-  for (const file of files) result[file] = await exists(path.join(root, file));
+  for (const file of files) result[file] = await isNonEmptyFile(path.join(root, file));
   return result;
 }
 
@@ -39,13 +51,23 @@ async function detectDirs(root, dirs) {
 }
 
 async function listScripts(dir) {
-  try { return (await readdir(dir)).filter((file) => file.endsWith(".sh")); } catch { return []; }
-}
-
-async function exists(file) {
-  try { await access(file); return true; } catch { return false; }
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    return entries.filter((entry) => entry.isFile() && entry.name.endsWith(".sh")).map((entry) => entry.name);
+  } catch {
+    return [];
+  }
 }
 
 async function isDir(file) {
   try { return (await stat(file)).isDirectory(); } catch { return false; }
+}
+
+async function isNonEmptyFile(file) {
+  try {
+    const metadata = await stat(file);
+    return metadata.isFile() && metadata.size > 0;
+  } catch {
+    return false;
+  }
 }
