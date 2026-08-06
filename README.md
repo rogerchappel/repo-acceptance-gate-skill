@@ -30,6 +30,12 @@ Policy lists may name repository-relative custom paths. `requiredDocs` and
 `check` and `explain` scan every path in the merged active policy; list values
 must be arrays of strings.
 
+Document evidence must be a non-empty regular file; empty files and directories
+whose names resemble documents do not satisfy the gate. Validation helpers must
+be regular `.sh` files under `scripts/`. If `package.json` exists but cannot be
+read or parsed, the CLI exits nonzero with a concise diagnostic instead of
+treating the manifest as absent.
+
 ```json
 {
   "requiredDocs": ["README.md", "architecture/DECISIONS.md"],

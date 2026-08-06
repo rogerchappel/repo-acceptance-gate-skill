@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 import { scanRepo } from "../src/scan.js";
 import { evaluate } from "../src/evaluate.js";
@@ -116,6 +118,43 @@ test("CLI rejects malformed policy list types with concise diagnostics", () => {
   assert.equal(result.stdout, "");
   assert.match(result.stderr, /Policy requiredDocs must be an array of strings/);
   assert.doesNotMatch(result.stderr, /TypeError|node:internal/);
+});
+
+test("CLI rejects a malformed package manifest with concise diagnostics", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-malformed-"));
+  writeFileSync(path.join(root, "package.json"), "{broken");
+
+  try {
+    const result = runCli("check", root, "--format", "json");
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /Cannot parse package\.json/);
+    assert.doesNotMatch(result.stderr, /at .*src\/|node:internal/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("API rejects empty or directory-shaped document and helper evidence", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-shapes-"));
+  for (const name of ["README.md", "SKILL.md"]) mkdirSync(path.join(root, name), { recursive: true });
+  mkdirSync(path.join(root, "docs", "PRD.md"), { recursive: true });
+  mkdirSync(path.join(root, "docs", "TASKS.md"), { recursive: true });
+  mkdirSync(path.join(root, "docs", "ORCHESTRATION.md"), { recursive: true });
+  mkdirSync(path.join(root, "scripts", "fake.sh"), { recursive: true });
+  writeFileSync(path.join(root, "package.json"), "{}\n");
+  writeFileSync(path.join(root, "LICENSE"), "");
+
+  try {
+    const report = evaluate(await scanRepo(root));
+    assert.deepEqual(report.summary.missingRequiredDocs, [
+      "README.md", "docs/PRD.md", "docs/TASKS.md", "docs/ORCHESTRATION.md", "SKILL.md",
+    ]);
+    assert.deepEqual(report.summary.missingRecommendedDocs, ["LICENSE", "docs/RELEASE_CANDIDATE.md", "docs/PR_EVIDENCE.md"]);
+    assert.equal(report.checks.find(({ id }) => id === "validation-script").pass, false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("CLI fail-on option returns a gate-specific exit code", () => {
