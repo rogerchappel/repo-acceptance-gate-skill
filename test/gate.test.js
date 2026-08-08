@@ -157,6 +157,70 @@ test("API rejects empty or directory-shaped document and helper evidence", async
   }
 });
 
+test("API rejects empty, whitespace-only, and invalid required scripts", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-scripts-"));
+  writeFileSync(path.join(root, "package.json"), JSON.stringify({ scripts: { test: "", check: "   ", build: null } }));
+  const policy = { requiredDocs: [], recommendedDocs: [] };
+
+  try {
+    const report = evaluate(await scanRepo(root, policy), policy);
+    assert.deepEqual(report.summary.missingScripts, ["test", "check", "build", "smoke"]);
+    assert.match(report.checks.find(({ id }) => id === "script:test").message, /empty or whitespace-only/);
+    assert.match(report.checks.find(({ id }) => id === "script:build").message, /not a string/);
+    assert.match(report.checks.find(({ id }) => id === "script:smoke").message, /missing/);
+    assert.deepEqual(report.commands, {});
+    assert.equal(report.recommendation, "incubate");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("API requires a regular file inside configured fixture directories", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-fixtures-"));
+  mkdirSync(path.join(root, "empty"));
+  mkdirSync(path.join(root, "nested", "directory-only"), { recursive: true });
+  writeFileSync(path.join(root, "not-a-directory"), "fixture-shaped path\n");
+  const policy = {
+    requiredDocs: [],
+    recommendedDocs: [],
+    requiredScripts: [],
+    fixtureDirs: ["missing", "empty", "nested", "not-a-directory"],
+  };
+
+  try {
+    const report = evaluate(await scanRepo(root, policy), policy);
+    const fixtures = report.checks.find(({ id }) => id === "fixtures");
+    assert.equal(fixtures.pass, false);
+    assert.match(fixtures.message, /missing \(missing\)/);
+    assert.match(fixtures.message, /empty \(empty\)/);
+    assert.match(fixtures.message, /nested \(empty\)/);
+    assert.match(fixtures.message, /not-a-directory \(invalid\)/);
+    assert.equal(report.recommendation, "incubate");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("CLI incubates whitespace-only scripts and an empty fixture directory", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-cli-evidence-"));
+  mkdirSync(path.join(root, "fixtures"));
+  writeFileSync(path.join(root, "package.json"), JSON.stringify({ scripts: {
+    test: " ", check: "\t", build: "\n", smoke: "  ",
+  } }));
+  writeFileSync(path.join(root, "policy.json"), JSON.stringify({ requiredDocs: [], recommendedDocs: [] }));
+
+  try {
+    const result = runCli("check", root, "--policy", path.join(root, "policy.json"), "--format", "json");
+    assert.equal(result.status, 0);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.recommendation, "incubate");
+    assert.deepEqual(report.summary.missingScripts, ["test", "check", "build", "smoke"]);
+    assert.match(report.checks.find(({ id }) => id === "fixtures").message, /fixtures \(empty\)/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("CLI fail-on option returns a gate-specific exit code", () => {
   const result = spawnSync(process.execPath, ["src/cli.js", "check", "fixtures/sparse", "--fail-on", "block"], {
     cwd: new URL("..", import.meta.url),
