@@ -13,7 +13,7 @@ export async function scanRepo(root, policyInput = {}) {
     package: packageJson,
     scripts: packageJson?.scripts || {},
     docs: await detectFiles(absolute, unique([...defaultDetectedDocs, ...policy.requiredDocs, ...policy.recommendedDocs])),
-    fixtureDirs: await detectDirs(absolute, unique(policy.fixtureDirs)),
+    fixtureDirs: await detectFixtureDirs(absolute, unique(policy.fixtureDirs)),
     validationScripts: await listScripts(path.join(absolute, "scripts"))
   };
 }
@@ -44,9 +44,9 @@ async function detectFiles(root, files) {
   return result;
 }
 
-async function detectDirs(root, dirs) {
+async function detectFixtureDirs(root, dirs) {
   const result = {};
-  for (const dir of dirs) result[dir] = await isDir(path.join(root, dir));
+  for (const dir of dirs) result[dir] = await fixtureDirState(path.join(root, dir));
   return result;
 }
 
@@ -59,8 +59,30 @@ async function listScripts(dir) {
   }
 }
 
-async function isDir(file) {
-  try { return (await stat(file)).isDirectory(); } catch { return false; }
+async function fixtureDirState(dir) {
+  let metadata;
+  try {
+    metadata = await stat(dir);
+  } catch (error) {
+    if (error.code === "ENOENT") return "missing";
+    return "invalid";
+  }
+  if (!metadata.isDirectory()) return "invalid";
+  return await containsRegularFile(dir) ? "present" : "empty";
+}
+
+async function containsRegularFile(dir) {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (entry.isFile()) return true;
+    if (entry.isDirectory() && await containsRegularFile(path.join(dir, entry.name))) return true;
+  }
+  return false;
 }
 
 async function isNonEmptyFile(file) {

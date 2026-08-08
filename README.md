@@ -36,6 +36,13 @@ be regular `.sh` files under `scripts/`. If `package.json` exists but cannot be
 read or parsed, the CLI exits nonzero with a concise diagnostic instead of
 treating the manifest as absent.
 
+Required package scripts count only when their values are non-empty strings
+after trimming; missing, empty or whitespace-only, and non-string values are
+reported separately. A configured fixture directory counts only when it exists
+as a directory and contains at least one regular file (including in a nested
+directory). Reports distinguish missing fixture paths, empty directories, and
+paths that exist but are not directories.
+
 ```json
 {
   "requiredDocs": ["README.md", "architecture/DECISIONS.md"],
