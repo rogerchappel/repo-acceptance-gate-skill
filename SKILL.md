@@ -17,6 +17,11 @@ validation helpers only when they are regular `.sh` files in `scripts/`.
 Malformed or unreadable `package.json` input is a blocking scan error, not
 evidence that the repository simply has no package scripts.
 
+Count a required package script only when its value is a non-empty string after
+trimming. Count a configured fixture directory only when it contains at least
+one regular file, including in nested directories. Evidence messages distinguish
+missing inputs, empty or whitespace-only inputs, and invalid input shapes.
+
 ## Boundaries
 
 - No publishing, tagging, package release, or branch-protection changes.

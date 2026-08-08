@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Require non-empty string commands and regular-file fixture evidence.
 - Scan custom documentation and fixture paths from the active policy.
 - Report malformed policy list values with concise diagnostics.
 
