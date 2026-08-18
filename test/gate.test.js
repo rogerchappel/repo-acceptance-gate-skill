@@ -6,7 +6,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { scanRepo } from "../src/scan.js";
 import { evaluate } from "../src/evaluate.js";
-import { renderMarkdown } from "../src/render.js";
+import { renderMarkdown, renderReport } from "../src/render.js";
 
 const repoRoot = new URL("..", import.meta.url);
 
@@ -62,6 +62,29 @@ test("API reports missing custom policy paths", async () => {
 test("renders markdown acceptance packet", async () => {
   const report = evaluate(await scanRepo("fixtures/node-package"));
   assert.match(renderMarkdown(report), /Repository Acceptance Gate/);
+});
+
+test("escapes Markdown table cells and code-span delimiters", () => {
+  const report = {
+    root: "fixture",
+    packageName: "markdown-edge-cases",
+    generatedAt: "2026-08-18T00:00:00.000Z",
+    recommendation: "block",
+    checks: [{ id: "doc:README.md|extra", pass: false, message: "README.md|extra exists\\path\nsecond line" }],
+    commands: {
+      "test`unit": "node -e \"console.log(`one`, ``two``)\"",
+      "`leading": "echo trailing`",
+    },
+    summary: { blockers: [] },
+  };
+
+  const markdown = renderMarkdown(report);
+  const checkRow = markdown.split("\n").find((line) => line.startsWith("| doc:"));
+  assert.equal(checkRow, "| doc:README.md\\|extra | missing | README.md\\|extra exists\\\\path<br>second line |");
+  assert.equal(checkRow.split(/(?<!\\)\|/).length, 5);
+  assert.match(markdown, /- npm run ``test`unit``: ```node -e "console\.log\(`one`, ``two``\)"```/);
+  assert.match(markdown, /- npm run `` `leading ``: `` echo trailing` ``/);
+  assert.equal(renderReport(report, "json"), JSON.stringify(report, null, 2) + "\n");
 });
 
 test("CLI prints help without scanning the current repo", () => {
