@@ -43,6 +43,11 @@ as a directory and contains at least one regular file (including in a nested
 directory). Reports distinguish missing fixture paths, empty directories, and
 paths that exist but are not directories.
 
+Markdown reports escape table delimiters in check identifiers and evidence so
+custom policy paths remain inside the three-column checks table. Package script
+names and commands use code-span delimiters longer than any backtick sequence
+in their content, preserving commands that themselves contain inline code.
+
 ```json
 {
   "requiredDocs": ["README.md", "architecture/DECISIONS.md"],
