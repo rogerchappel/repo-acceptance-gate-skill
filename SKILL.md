@@ -12,6 +12,10 @@ repository-relative file paths. `fixtureDirs` may likewise contain custom
 repository-relative directory paths. `check` and `explain` scan every path in
 the merged active policy.
 
+Policy controls `blockOnMissingRequiredDocs` and
+`blockOnMissingRequiredScripts` must be booleans. Set either control to `false`
+to keep that missing-evidence category from becoming a blocker.
+
 Count documentation only when the path is a non-empty regular file, and count
 validation helpers only when they are regular `.sh` files in `scripts/`.
 Malformed or unreadable `package.json` input is a blocking scan error, not
