@@ -28,7 +28,9 @@ Policy lists may name repository-relative custom paths. `requiredDocs` and
 `recommendedDocs` accept file paths such as `architecture/DECISIONS.md`, while
 `fixtureDirs` accepts directory paths such as `examples/integration`. Both
 `check` and `explain` scan every path in the merged active policy; list values
-must be arrays of strings.
+must be arrays of strings. `blockOnMissingRequiredDocs` and
+`blockOnMissingRequiredScripts` must be booleans; use `false` to leave the
+corresponding blocker disabled.
 
 Document evidence must be a non-empty regular file; empty files and directories
 whose names resemble documents do not satisfy the gate. Validation helpers must
@@ -52,7 +54,9 @@ in their content, preserving commands that themselves contain inline code.
 {
   "requiredDocs": ["README.md", "architecture/DECISIONS.md"],
   "recommendedDocs": ["guides/OPERATIONS.md"],
-  "fixtureDirs": ["examples/integration"]
+  "fixtureDirs": ["examples/integration"],
+  "blockOnMissingRequiredDocs": true,
+  "blockOnMissingRequiredScripts": false
 }
 ```
 
