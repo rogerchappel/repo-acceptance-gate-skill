@@ -6,6 +6,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { scanRepo } from "../src/scan.js";
 import { evaluate } from "../src/evaluate.js";
+import { mergePolicy } from "../src/policy.js";
 import { renderMarkdown, renderReport } from "../src/render.js";
 
 const repoRoot = new URL("..", import.meta.url);
@@ -31,6 +32,28 @@ test("blocks sparse repositories missing required docs", async () => {
 test("supports stricter script policy", async () => {
   const report = evaluate(await scanRepo("fixtures/docs-only"), { blockOnMissingRequiredScripts: true });
   assert.equal(report.recommendation, "block");
+});
+
+test("policy blocking controls accept false without enabling blockers", async () => {
+  const policy = {
+    blockOnMissingRequiredDocs: false,
+    blockOnMissingRequiredScripts: false,
+  };
+  const report = evaluate(await scanRepo("fixtures/sparse"), policy);
+
+  assert.deepEqual(report.summary.blockers, []);
+  assert.notEqual(report.recommendation, "block");
+});
+
+test("policy blocking controls reject non-boolean values", () => {
+  for (const field of ["blockOnMissingRequiredDocs", "blockOnMissingRequiredScripts"]) {
+    for (const value of ["false", [], null, {}]) {
+      assert.throws(
+        () => mergePolicy({ [field]: value }),
+        new RegExp(`Policy ${field} must be a boolean`),
+      );
+    }
+  }
 });
 
 test("API scans custom required, recommended, and fixture paths", async () => {
@@ -141,6 +164,30 @@ test("CLI rejects malformed policy list types with concise diagnostics", () => {
   assert.equal(result.stdout, "");
   assert.match(result.stderr, /Policy requiredDocs must be an array of strings/);
   assert.doesNotMatch(result.stderr, /TypeError|node:internal/);
+});
+
+test("CLI rejects malformed policy boolean types with concise diagnostics", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-policy-"));
+
+  try {
+    for (const [field, value] of [
+      ["blockOnMissingRequiredDocs", "false"],
+      ["blockOnMissingRequiredScripts", []],
+      ["blockOnMissingRequiredDocs", null],
+      ["blockOnMissingRequiredScripts", {}],
+    ]) {
+      const policyPath = path.join(root, "policy.json");
+      writeFileSync(policyPath, JSON.stringify({ [field]: value }));
+      const result = runCli("check", "fixtures/sparse", "--policy", policyPath);
+
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, new RegExp(`Policy ${field} must be a boolean`));
+      assert.doesNotMatch(result.stderr, /TypeError|node:internal|at .*src\//);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("CLI rejects a malformed package manifest with concise diagnostics", () => {
