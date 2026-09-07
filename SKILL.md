@@ -10,7 +10,8 @@ Use this skill when an agent needs a deterministic release-candidate packet for 
 Policy `requiredDocs` and `recommendedDocs` arrays may contain custom
 repository-relative file paths. `fixtureDirs` may likewise contain custom
 repository-relative directory paths. `check` and `explain` scan every path in
-the merged active policy.
+the merged active policy. Every policy-list entry must be a non-empty string;
+empty and whitespace-only entries are invalid.
 
 Policy controls `blockOnMissingRequiredDocs` and
 `blockOnMissingRequiredScripts` must be booleans. Set either control to `false`

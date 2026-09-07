@@ -28,7 +28,8 @@ Policy lists may name repository-relative custom paths. `requiredDocs` and
 `recommendedDocs` accept file paths such as `architecture/DECISIONS.md`, while
 `fixtureDirs` accepts directory paths such as `examples/integration`. Both
 `check` and `explain` scan every path in the merged active policy; list values
-must be arrays of strings. `blockOnMissingRequiredDocs` and
+must be arrays of non-empty strings; empty and whitespace-only entries are
+rejected. `blockOnMissingRequiredDocs` and
 `blockOnMissingRequiredScripts` must be booleans; use `false` to leave the
 corresponding blocker disabled.
 
