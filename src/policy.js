@@ -10,8 +10,8 @@ export const defaultPolicy = {
 export function mergePolicy(policy = {}) {
   const merged = { ...defaultPolicy, ...policy };
   for (const field of ["requiredDocs", "recommendedDocs", "requiredScripts", "fixtureDirs"]) {
-    if (!Array.isArray(merged[field]) || merged[field].some((value) => typeof value !== "string")) {
-      throw new Error(`Policy ${field} must be an array of strings`);
+    if (!Array.isArray(merged[field]) || merged[field].some((value) => typeof value !== "string" || !value.trim())) {
+      throw new Error(`Policy ${field} must be an array of non-empty strings`);
     }
   }
   for (const field of ["blockOnMissingRequiredDocs", "blockOnMissingRequiredScripts"]) {

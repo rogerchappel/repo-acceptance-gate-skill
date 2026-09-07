@@ -56,6 +56,17 @@ test("policy blocking controls reject non-boolean values", () => {
   }
 });
 
+test("policy lists reject empty and whitespace-only entries", () => {
+  for (const field of ["requiredDocs", "recommendedDocs", "requiredScripts", "fixtureDirs"]) {
+    for (const value of ["", " \t "]) {
+      assert.throws(
+        () => mergePolicy({ [field]: [value] }),
+        new RegExp(`Policy ${field} must be an array of non-empty strings`),
+      );
+    }
+  }
+});
+
 test("API scans custom required, recommended, and fixture paths", async () => {
   const policy = {
     requiredDocs: ["CUSTOM_REQUIRED.md"],
@@ -162,8 +173,30 @@ test("CLI rejects malformed policy list types with concise diagnostics", () => {
 
   assert.equal(result.status, 1);
   assert.equal(result.stdout, "");
-  assert.match(result.stderr, /Policy requiredDocs must be an array of strings/);
+  assert.match(result.stderr, /Policy requiredDocs must be an array of non-empty strings/);
   assert.doesNotMatch(result.stderr, /TypeError|node:internal/);
+});
+
+test("CLI rejects empty policy list entries before scanning repository evidence", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-empty-policy-"));
+
+  try {
+    writeFileSync(path.join(root, "repository-file.txt"), "must not count as fixture evidence\n");
+    for (const field of ["requiredDocs", "recommendedDocs", "requiredScripts", "fixtureDirs"]) {
+      for (const value of ["", "   "]) {
+        const policyPath = path.join(root, "policy.json");
+        writeFileSync(policyPath, JSON.stringify({ [field]: [value] }));
+        const result = runCli("check", root, "--policy", policyPath, "--format", "json");
+
+        assert.equal(result.status, 1);
+        assert.equal(result.stdout, "");
+        assert.match(result.stderr, new RegExp(`Policy ${field} must be an array of non-empty strings`));
+        assert.doesNotMatch(result.stderr, /fixture directory\s+contains a regular file|TypeError|node:internal/);
+      }
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("CLI rejects malformed policy boolean types with concise diagnostics", () => {
