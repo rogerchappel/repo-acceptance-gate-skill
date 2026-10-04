@@ -54,8 +54,9 @@ async function listScripts(dir) {
   try {
     const entries = await readdir(dir, { withFileTypes: true });
     return entries.filter((entry) => entry.isFile() && entry.name.endsWith(".sh")).map((entry) => entry.name);
-  } catch {
-    return [];
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw new Error(`Cannot read validation scripts directory: ${error.message}`);
   }
 }
 

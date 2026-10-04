@@ -278,6 +278,20 @@ test("API rejects empty, whitespace-only, and invalid required scripts", async (
   }
 });
 
+test("missing scripts directory is empty but other read errors are reported", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-script-errors-"));
+  const policy = { requiredDocs: [], recommendedDocs: [] };
+  writeFileSync(path.join(root, "package.json"), "{}\n");
+
+  try {
+    assert.deepEqual((await scanRepo(root, policy)).validationScripts, []);
+    writeFileSync(path.join(root, "scripts"), "not a directory");
+    await assert.rejects(scanRepo(root, policy), /Cannot read validation scripts directory/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("API requires a regular file inside configured fixture directories", async () => {
   const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-fixtures-"));
   mkdirSync(path.join(root, "empty"));
