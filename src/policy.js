@@ -13,6 +13,7 @@ export function mergePolicy(policy = {}) {
     if (!Array.isArray(merged[field]) || merged[field].some((value) => typeof value !== "string" || !value.trim())) {
       throw new Error(`Policy ${field} must be an array of non-empty strings`);
     }
+    merged[field] = [...new Set(merged[field])];
   }
   for (const field of ["blockOnMissingRequiredDocs", "blockOnMissingRequiredScripts"]) {
     if (typeof merged[field] !== "boolean") {
