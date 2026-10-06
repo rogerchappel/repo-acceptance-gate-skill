@@ -67,6 +67,14 @@ test("policy lists reject empty and whitespace-only entries", () => {
   }
 });
 
+test("policy lists remove duplicates while preserving first occurrence order", () => {
+  for (const field of ["requiredDocs", "recommendedDocs", "requiredScripts", "fixtureDirs"]) {
+    const entries = ["first", "second", "first"];
+    assert.deepEqual(mergePolicy({ [field]: entries })[field], ["first", "second"], field);
+    assert.deepEqual(entries, ["first", "second", "first"], "does not mutate caller input");
+  }
+});
+
 test("API scans custom required, recommended, and fixture paths", async () => {
   const policy = {
     requiredDocs: ["CUSTOM_REQUIRED.md"],
