@@ -45,6 +45,13 @@ test("policy blocking controls accept false without enabling blockers", async ()
   assert.notEqual(report.recommendation, "block");
 });
 
+test("policy rejects unsupported fields with their names", () => {
+  assert.throws(() => mergePolicy({ requiredDoc: ["README.md"] }), /Policy contains unsupported field: requiredDoc/);
+  assert.throws(() => mergePolicy({ custom: true, surprise: 1 }), /Policy contains unsupported fields: custom, surprise/);
+  assert.throws(() => mergePolicy(null), /Policy must be an object/);
+  assert.throws(() => mergePolicy([]), /Policy must be an object/);
+});
+
 test("policy blocking controls reject non-boolean values", () => {
   for (const field of ["blockOnMissingRequiredDocs", "blockOnMissingRequiredScripts"]) {
     for (const value of ["false", [], null, {}]) {
@@ -174,6 +181,21 @@ test("CLI reports missing custom paths from a policy file", () => {
   assert.deepEqual(report.summary.missingRequiredDocs, ["MISSING_REQUIRED.md"]);
   assert.deepEqual(report.summary.missingRecommendedDocs, ["guides/MISSING_RECOMMENDED.md"]);
   assert.equal(report.checks.find(({ id }) => id === "fixtures").pass, false);
+});
+
+test("CLI rejects unsupported policy fields with concise diagnostics", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-unknown-policy-"));
+  try {
+    const policyPath = path.join(root, "policy.json");
+    writeFileSync(policyPath, JSON.stringify({ requiredDocs: ["README.md"], custom: true }));
+    const result = runCli("check", "fixtures/node-package", "--policy", policyPath);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /Policy contains unsupported field: custom/);
+    assert.doesNotMatch(result.stderr, /TypeError|node:internal/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("CLI rejects malformed policy list types with concise diagnostics", () => {
