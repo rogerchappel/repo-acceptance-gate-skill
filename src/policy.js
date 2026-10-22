@@ -8,6 +8,14 @@ export const defaultPolicy = {
 };
 
 export function mergePolicy(policy = {}) {
+  if (policy === null || typeof policy !== "object" || Array.isArray(policy)) {
+    throw new Error("Policy must be an object");
+  }
+  const supportedFields = Object.keys(defaultPolicy);
+  const unknownFields = Object.keys(policy).filter((field) => !supportedFields.includes(field));
+  if (unknownFields.length) {
+    throw new Error(`Policy contains unsupported field${unknownFields.length === 1 ? "" : "s"}: ${unknownFields.join(", ")}`);
+  }
   const merged = { ...defaultPolicy, ...policy };
   for (const field of ["requiredDocs", "recommendedDocs", "requiredScripts", "fixtureDirs"]) {
     if (!Array.isArray(merged[field]) || merged[field].some((value) => typeof value !== "string" || !value.trim())) {
