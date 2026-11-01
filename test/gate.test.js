@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -343,6 +343,22 @@ test("API requires a regular file inside configured fixture directories", async 
     assert.match(fixtures.message, /nested \(empty\)/);
     assert.match(fixtures.message, /not-a-directory \(invalid\)/);
     assert.equal(report.recommendation, "incubate");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("fixture scanning terminates when directory symlinks form a cycle", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-fixture-cycle-"));
+  const fixtures = path.join(root, "fixtures");
+  mkdirSync(path.join(fixtures, "nested"), { recursive: true });
+  symlinkSync("..", path.join(fixtures, "nested", "back"));
+  const policy = { requiredDocs: [], recommendedDocs: [], requiredScripts: [], fixtureDirs: ["fixtures"] };
+
+  try {
+    const report = await scanRepo(root, policy);
+    assert.equal(report.fixtureDirs.fixtures, "empty");
+    assert.equal(evaluate(report, policy).checks.find(({ id }) => id === "fixtures").pass, false);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

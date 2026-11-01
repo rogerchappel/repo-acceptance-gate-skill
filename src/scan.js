@@ -69,10 +69,20 @@ async function fixtureDirState(dir) {
     return "invalid";
   }
   if (!metadata.isDirectory()) return "invalid";
-  return await containsRegularFile(dir) ? "present" : "empty";
+  return await containsRegularFile(dir, new Set()) ? "present" : "empty";
 }
 
-async function containsRegularFile(dir) {
+async function containsRegularFile(dir, visited) {
+  let metadata;
+  try {
+    metadata = await stat(dir);
+  } catch {
+    return false;
+  }
+  const identity = `${metadata.dev}:${metadata.ino}`;
+  if (visited.has(identity)) return false;
+  visited.add(identity);
+
   let entries;
   try {
     entries = await readdir(dir, { withFileTypes: true });
@@ -81,7 +91,7 @@ async function containsRegularFile(dir) {
   }
   for (const entry of entries) {
     if (entry.isFile()) return true;
-    if (entry.isDirectory() && await containsRegularFile(path.join(dir, entry.name))) return true;
+    if (entry.isDirectory() && await containsRegularFile(path.join(dir, entry.name), visited)) return true;
   }
   return false;
 }
