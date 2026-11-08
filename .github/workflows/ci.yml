@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   release-check:
     name: Release check (Node ${{ matrix.node-version }})
