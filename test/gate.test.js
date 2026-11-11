@@ -348,6 +348,28 @@ test("API requires a regular file inside configured fixture directories", async 
   }
 });
 
+test("fixture scanning rejects symlinked roots and children without following them", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-fixture-symlink-"));
+  const outside = mkdtempSync(path.join(tmpdir(), "acceptance-gate-outside-"));
+  const linkedRoot = path.join(root, "linked-fixtures");
+  const fixtures = path.join(root, "fixtures");
+  mkdirSync(fixtures);
+  writeFileSync(path.join(fixtures, "inside.txt"), "in-repository fixture\n");
+  writeFileSync(path.join(outside, "outside.txt"), "outside fixture\n");
+  symlinkSync(outside, linkedRoot, "dir");
+  symlinkSync(outside, path.join(fixtures, "external"), "dir");
+  const policy = { requiredDocs: [], recommendedDocs: [], requiredScripts: [], fixtureDirs: ["linked-fixtures", "fixtures"] };
+
+  try {
+    const report = await scanRepo(root, policy);
+    assert.equal(report.fixtureDirs["linked-fixtures"], "invalid");
+    assert.equal(report.fixtureDirs.fixtures, "present");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  }
+});
+
 test("fixture scanning terminates when directory symlinks form a cycle", async () => {
   const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-fixture-cycle-"));
   const fixtures = path.join(root, "fixtures");
