@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readFile, readdir, lstat } from "node:fs/promises";
 import path from "node:path";
 import { mergePolicy } from "./policy.js";
 
@@ -63,7 +63,7 @@ async function listScripts(dir) {
 async function fixtureDirState(dir) {
   let metadata;
   try {
-    metadata = await stat(dir);
+    metadata = await lstat(dir);
   } catch (error) {
     if (error.code === "ENOENT") return "missing";
     return "invalid";
@@ -75,7 +75,7 @@ async function fixtureDirState(dir) {
 async function containsRegularFile(dir, visited) {
   let metadata;
   try {
-    metadata = await stat(dir);
+    metadata = await lstat(dir);
   } catch {
     return false;
   }
@@ -98,7 +98,7 @@ async function containsRegularFile(dir, visited) {
 
 async function isNonEmptyFile(file) {
   try {
-    const metadata = await stat(file);
+    const metadata = await lstat(file);
     return metadata.isFile() && metadata.size > 0;
   } catch {
     return false;
