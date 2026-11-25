@@ -30,7 +30,15 @@ async function check(args, command) {
   if (options["fail-on"] && !["ship", "incubate", "block"].includes(options["fail-on"])) {
     throw new Error(`Unsupported value for --fail-on: ${options["fail-on"]} (expected ship, incubate, or block)`);
   }
-  const policy = options.policy ? JSON.parse(await readFile(options.policy, "utf8")) : {};
+  let policy = {};
+  if (options.policy) {
+    const contents = await readFile(options.policy, "utf8");
+    try {
+      policy = JSON.parse(contents);
+    } catch {
+      throw new Error(`Policy file is not valid JSON: ${options.policy}`);
+    }
+  }
   const report = evaluate(await scanRepo(root, policy), policy);
   process.stdout.write(renderReport(report, options.format || "markdown"));
   if (options["fail-on"] && report.recommendation === options["fail-on"]) process.exitCode = 2;
