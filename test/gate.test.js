@@ -198,6 +198,21 @@ test("CLI rejects unsupported policy fields with concise diagnostics", () => {
   }
 });
 
+test("CLI reports malformed policy JSON with a concise policy-file diagnostic", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "acceptance-gate-invalid-json-"));
+  try {
+    const policyPath = path.join(root, "policy.json");
+    writeFileSync(policyPath, "{ invalid");
+    const result = runCli("check", "fixtures/node-package", "--policy", policyPath);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, `Policy file is not valid JSON: ${policyPath}\n`);
+    assert.doesNotMatch(result.stderr, /SyntaxError|JSON\.parse|node:internal/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("CLI rejects malformed policy list types with concise diagnostics", () => {
   const result = runCli("check", "fixtures/custom-policy", "--policy", "fixtures/custom-policy/malformed-policy.json");
 
