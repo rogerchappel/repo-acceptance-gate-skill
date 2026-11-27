@@ -300,6 +300,10 @@ test("API rejects empty or directory-shaped document and helper evidence", async
     ]);
     assert.deepEqual(report.summary.missingRecommendedDocs, ["LICENSE", "docs/RELEASE_CANDIDATE.md", "docs/PR_EVIDENCE.md"]);
     assert.equal(report.checks.find(({ id }) => id === "validation-script").pass, false);
+    assert.equal(report.recommendation, "block");
+    assert.ok(report.summary.blockers.length > 0);
+    assert.ok(report.checks.find(({ id }) => id === "doc:README.md").pass === false);
+    assert.ok(report.checks.find(({ id }) => id === "validation-script").message);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
